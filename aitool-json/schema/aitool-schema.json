@@ -1,0 +1,510 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aitool-spec.org/v1/schema.json",
+  "title": "AITool JSON Specification",
+  "description": "Complete interface specification for AI-consumable tools using aitool.json format",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["aitool_version", "manifest", "capabilities", "execution", "usage_guidance"],
+  
+  "properties": {
+    "aitool_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the AITool specification format",
+      "examples": ["1.0.0"]
+    },
+    
+    "manifest": {
+      "type": "object",
+      "required": ["id", "name", "version", "category"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9._-]+\\.[a-z0-9._-]+\\.[a-z0-9_-]+$",
+          "description": "Unique identifier in reverse domain format",
+          "examples": ["com.company.search-database"]
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Function name (snake_case)",
+          "examples": ["search_database"]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Tool version (semantic versioning)"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Human-readable tool name",
+          "examples": ["Database Search"]
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Concise description of what the tool does"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "data_retrieval",
+            "data_manipulation",
+            "communication",
+            "computation",
+            "file_operations",
+            "api_integration",
+            "automation",
+            "monitoring",
+            "security",
+            "other"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Searchable tags for discovery"
+        },
+        "provider": {
+          "type": "object",
+          "properties": {
+            "name": {"type": "string"},
+            "contact": {"type": "string", "format": "email"},
+            "support_url": {"type": "string", "format": "uri"},
+            "documentation_url": {"type": "string", "format": "uri"}
+          }
+        }
+      }
+    },
+    
+    "capabilities": {
+      "type": "object",
+      "required": ["primary_function"],
+      "properties": {
+        "primary_function": {
+          "type": "string",
+          "description": "Main capability of this tool"
+        },
+        "supported_operations": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "List of operations this tool supports"
+        },
+        "data_sources": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Data sources this tool accesses"
+        },
+        "output_formats": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Supported output formats"
+        },
+        "supports_streaming": {
+          "type": "boolean",
+          "default": false
+        },
+        "idempotent": {
+          "type": "boolean",
+          "description": "Whether repeated calls with same input produce same result"
+        },
+        "stateful": {
+          "type": "boolean",
+          "description": "Whether tool maintains state between calls"
+        },
+        "requires_auth": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    
+    "execution": {
+      "type": "object",
+      "required": ["protocol", "endpoint", "parameters", "returns"],
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "enum": ["function_call", "http", "grpc", "websocket", "cli"],
+          "description": "How to invoke this tool"
+        },
+        "endpoint": {
+          "type": "object",
+          "description": "Endpoint details vary by protocol",
+          "oneOf": [
+            {
+              "properties": {
+                "type": {"const": "python_function"},
+                "module": {"type": "string"},
+                "function": {"type": "string"}
+              },
+              "required": ["type", "module", "function"]
+            },
+            {
+              "properties": {
+                "type": {"const": "http"},
+                "method": {"enum": ["GET", "POST", "PUT", "DELETE", "PATCH"]},
+                "url": {"type": "string", "format": "uri"},
+                "headers": {"type": "object"}
+              },
+              "required": ["type", "method", "url"]
+            },
+            {
+              "properties": {
+                "type": {"const": "cli"},
+                "command": {"type": "string"},
+                "args": {"type": "array", "items": {"type": "string"}}
+              },
+              "required": ["type", "command"]
+            }
+          ]
+        },
+        "parameters": {
+          "type": "object",
+          "description": "JSON Schema for input parameters",
+          "properties": {
+            "type": {"const": "object"},
+            "required": {"type": "array", "items": {"type": "string"}},
+            "properties": {"type": "object"}
+          }
+        },
+        "returns": {
+          "type": "object",
+          "properties": {
+            "success_schema": {
+              "type": "object",
+              "description": "JSON Schema for successful return values"
+            },
+            "success_criteria": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Conditions that define a successful execution"
+            }
+          }
+        },
+        "timeout_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum execution time"
+        }
+      }
+    },
+    
+    "operations": {
+      "type": "object",
+      "properties": {
+        "performance": {
+          "type": "object",
+          "properties": {
+            "latency_ms": {
+              "type": "object",
+              "properties": {
+                "p50": {"type": "number"},
+                "p95": {"type": "number"},
+                "p99": {"type": "number"}
+              }
+            },
+            "throughput_qps": {
+              "type": "number",
+              "description": "Queries per second capacity"
+            },
+            "resource_usage": {
+              "type": "object",
+              "properties": {
+                "memory_mb": {"type": "number"},
+                "cpu_cores": {"type": "number"}
+              }
+            }
+          }
+        },
+        "reliability": {
+          "type": "object",
+          "properties": {
+            "availability_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "error_rate_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        },
+        "cost": {
+          "type": "object",
+          "properties": {
+            "tier": {
+              "enum": ["free", "low", "medium", "high"]
+            },
+            "pricing": {
+              "type": "object",
+              "properties": {
+                "model": {"enum": ["per_request", "per_minute", "per_gb", "subscription"]},
+                "amount": {"type": "number"},
+                "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+              }
+            }
+          }
+        },
+        "rate_limits": {
+          "type": "object",
+          "properties": {
+            "requests_per_minute": {"type": "integer"},
+            "requests_per_hour": {"type": "integer"},
+            "requests_per_day": {"type": "integer"},
+            "burst": {"type": "integer"},
+            "concurrent": {"type": "integer"}
+          }
+        }
+      }
+    },
+    
+    "usage_guidance": {
+      "type": "object",
+      "required": ["when_to_use"],
+      "properties": {
+        "when_to_use": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["trigger"],
+            "properties": {
+              "trigger": {
+                "type": "string",
+                "description": "Scenario when this tool should be used"
+              },
+              "confidence": {
+                "enum": ["high", "medium", "low"]
+              },
+              "examples": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            }
+          }
+        },
+        "when_not_to_use": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "scenario": {"type": "string"},
+              "reason": {"type": "string"},
+              "alternative_tool": {"type": "string"}
+            }
+          }
+        },
+        "best_practices": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "common_mistakes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "mistake": {"type": "string"},
+              "consequence": {"type": "string"},
+              "fix": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    
+    "error_handling": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["error_type", "recovery"],
+        "properties": {
+          "error_type": {
+            "type": "string",
+            "description": "Type of error (e.g., timeout, rate_limit, not_found)"
+          },
+          "error_code": {
+            "type": "string",
+            "description": "Specific error code or exception class"
+          },
+          "detection": {
+            "type": "string",
+            "description": "How to detect this error"
+          },
+          "recovery": {
+            "type": "object",
+            "required": ["strategy"],
+            "properties": {
+              "strategy": {
+                "enum": ["retry", "retry_with_backoff", "wait_and_retry", "alternate_tool", "fail", "prompt_user"]
+              },
+              "max_retries": {"type": "integer"},
+              "backoff_ms": {
+                "type": "array",
+                "items": {"type": "integer"}
+              },
+              "wait_seconds": {"type": "number"},
+              "fallback_tool": {"type": "string"},
+              "message_to_user": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["input", "output"],
+        "properties": {
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "input": {
+            "type": "object",
+            "description": "Example input parameters"
+          },
+          "output": {
+            "type": "object",
+            "description": "Expected output"
+          },
+          "context": {"type": "string"}
+        }
+      }
+    },
+    
+    "testing": {
+      "type": "object",
+      "properties": {
+        "contract_tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "input": {"type": "object"},
+              "assertions": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            }
+          }
+        },
+        "integration_tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "input": {"type": "object"},
+              "expected": {"type": "object"}
+            }
+          }
+        },
+        "validation_rules": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    
+    "composition": {
+      "type": "object",
+      "properties": {
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tool_id": {"type": "string"},
+              "version": {"type": "string"},
+              "required": {"type": "boolean"},
+              "purpose": {"type": "string"}
+            }
+          }
+        },
+        "can_compose_with": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tool_id": {"type": "string"},
+              "pattern": {"enum": ["sequential", "parallel", "conditional"]},
+              "description": {"type": "string"}
+            }
+          }
+        },
+        "output_compatible_with": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    
+    "versioning": {
+      "type": "object",
+      "properties": {
+        "current_version": {"type": "string"},
+        "deprecated": {"type": "boolean"},
+        "deprecation_date": {"type": "string", "format": "date"},
+        "end_of_life_date": {"type": "string", "format": "date"},
+        "breaking_changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": {"type": "string"},
+              "date": {"type": "string", "format": "date"},
+              "changes": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "migration_guide": {"type": "string", "format": "uri"}
+            }
+          }
+        },
+        "compatibility": {
+          "type": "object",
+          "properties": {
+            "backward_compatible_with": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "forward_compatible_with": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    
+    "observability": {
+      "type": "object",
+      "properties": {
+        "metrics_exposed": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "logging": {
+          "type": "object",
+          "properties": {
+            "level": {"enum": ["debug", "info", "warning", "error"]},
+            "includes_pii": {"type": "boolean"},
+            "retention_days": {"type": "integer"}
+          }
+        },
+        "tracing": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "system": {"type": "string"},
+            "sample_rate": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        }
+      }
+    }
+  }
+}

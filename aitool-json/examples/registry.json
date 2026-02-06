@@ -1,0 +1,115 @@
+{
+  "registry_version": "1.0.0",
+  "last_updated": "2025-02-05T10:30:00Z",
+  "description": "Central registry for all available AITool-compatible tools",
+  "tools": [
+    {
+      "id": "com.acme.search-database",
+      "name": "search_database",
+      "version": "1.2.0",
+      "display_name": "Product Database Search",
+      "category": "data_retrieval",
+      "aitool_file": "./search_database.aitool.json",
+      "status": "active",
+      "health_check_url": "https://api.acme.com/tools/search-database/health",
+      "last_verified": "2025-02-05T10:00:00Z"
+    },
+    {
+      "id": "com.acme.get-pricing",
+      "name": "get_pricing",
+      "version": "2.1.0",
+      "display_name": "Get Real-time Pricing",
+      "category": "data_retrieval",
+      "aitool_file": "./get_pricing.aitool.json",
+      "status": "active",
+      "health_check_url": "https://api.acme.com/tools/get-pricing/health",
+      "last_verified": "2025-02-05T10:00:00Z"
+    },
+    {
+      "id": "com.acme.send-email",
+      "name": "send_email",
+      "version": "1.0.5",
+      "display_name": "Send Email",
+      "category": "communication",
+      "aitool_file": "./send_email.aitool.json",
+      "status": "active",
+      "last_verified": "2025-02-05T09:45:00Z"
+    },
+    {
+      "id": "com.acme.generate-report",
+      "name": "generate_report",
+      "version": "3.0.0",
+      "display_name": "Generate PDF Report",
+      "category": "file_operations",
+      "aitool_file": "./generate_report.aitool.json",
+      "status": "active",
+      "last_verified": "2025-02-05T10:15:00Z"
+    },
+    {
+      "id": "com.acme.legacy-tool",
+      "name": "legacy_tool",
+      "version": "0.9.2",
+      "display_name": "Legacy Tool",
+      "category": "other",
+      "aitool_file": "./legacy_tool.aitool.json",
+      "status": "deprecated",
+      "deprecation_date": "2024-12-01",
+      "end_of_life_date": "2025-06-01",
+      "replacement": "com.acme.modern-tool",
+      "last_verified": "2025-02-05T08:00:00Z"
+    }
+  ],
+  "categories": {
+    "data_retrieval": {
+      "description": "Tools for fetching and searching data",
+      "tools": ["com.acme.search-database", "com.acme.get-pricing"]
+    },
+    "data_manipulation": {
+      "description": "Tools for transforming and processing data",
+      "tools": []
+    },
+    "communication": {
+      "description": "Tools for sending messages and notifications",
+      "tools": ["com.acme.send-email"]
+    },
+    "computation": {
+      "description": "Tools for calculations and data analysis",
+      "tools": []
+    },
+    "file_operations": {
+      "description": "Tools for creating, reading, and modifying files",
+      "tools": ["com.acme.generate-report"]
+    },
+    "api_integration": {
+      "description": "Tools for integrating with external APIs",
+      "tools": []
+    },
+    "automation": {
+      "description": "Tools for automating repetitive tasks",
+      "tools": []
+    },
+    "monitoring": {
+      "description": "Tools for system monitoring and alerting",
+      "tools": []
+    },
+    "security": {
+      "description": "Tools for security and authentication",
+      "tools": []
+    },
+    "other": {
+      "description": "Miscellaneous tools",
+      "tools": ["com.acme.legacy-tool"]
+    }
+  },
+  "statistics": {
+    "total_tools": 5,
+    "active_tools": 4,
+    "deprecated_tools": 1,
+    "tools_by_category": {
+      "data_retrieval": 2,
+      "communication": 1,
+      "file_operations": 1,
+      "other": 1
+    }
+  }
+}

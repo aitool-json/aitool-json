@@ -1,0 +1,139 @@
+{
+  "aitool_version": "1.0.0",
+  "manifest": {
+    "id": "com.company.tool-name",
+    "name": "tool_name",
+    "version": "0.1.0",
+    "display_name": "Tool Display Name",
+    "description": "Brief description of what this tool does",
+    "category": "data_retrieval",
+    "tags": ["tag1", "tag2"],
+    "provider": {
+      "name": "Your Company",
+      "contact": "tools@company.com",
+      "support_url": "https://support.company.com",
+      "documentation_url": "https://docs.company.com"
+    }
+  },
+  "capabilities": {
+    "primary_function": "describe_main_capability",
+    "supported_operations": ["operation1", "operation2"],
+    "data_sources": [],
+    "output_formats": ["json"],
+    "supports_streaming": false,
+    "idempotent": true,
+    "stateful": false,
+    "requires_auth": false
+  },
+  "execution": {
+    "protocol": "function_call",
+    "endpoint": {
+      "type": "python_function",
+      "module": "your.module.path",
+      "function": "your_function_name"
+    },
+    "parameters": {
+      "type": "object",
+      "required": ["param1"],
+      "properties": {
+        "param1": {
+          "type": "string",
+          "description": "Description of parameter",
+          "examples": ["example1", "example2"]
+        },
+        "param2": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10,
+          "description": "Optional parameter with default"
+        }
+      }
+    },
+    "returns": {
+      "success_schema": {
+        "type": "object",
+        "required": ["result"],
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "Description of return value"
+          }
+        }
+      },
+      "success_criteria": [
+        "Condition 1 for success",
+        "Condition 2 for success"
+      ]
+    },
+    "timeout_seconds": 30
+  },
+  "usage_guidance": {
+    "when_to_use": [
+      {
+        "trigger": "User asks about X",
+        "confidence": "high",
+        "examples": [
+          "Find me X",
+          "What is X?",
+          "Search for X"
+        ]
+      }
+    ],
+    "when_not_to_use": [
+      {
+        "scenario": "User asks about Y",
+        "reason": "This tool is not designed for Y",
+        "alternative_tool": "com.company.other-tool"
+      }
+    ],
+    "best_practices": [
+      "Always do X before Y",
+      "Use specific queries for better results",
+      "Check for empty results"
+    ],
+    "common_mistakes": [
+      {
+        "mistake": "Using vague queries",
+        "consequence": "Too many or irrelevant results",
+        "fix": "Be more specific in your query"
+      }
+    ]
+  },
+  "error_handling": [
+    {
+      "error_type": "timeout",
+      "error_code": "TimeoutError",
+      "detection": "Response time > timeout_seconds",
+      "recovery": {
+        "strategy": "retry_with_backoff",
+        "max_retries": 3,
+        "backoff_ms": [1000, 2000, 4000],
+        "message_to_user": "Operation timed out, retrying..."
+      }
+    },
+    {
+      "error_type": "invalid_input",
+      "error_code": "ValidationError",
+      "detection": "Input fails validation",
+      "recovery": {
+        "strategy": "prompt_user",
+        "message_to_user": "Invalid input. Please check your parameters."
+      }
+    }
+  ],
+  "examples": [
+    {
+      "name": "basic_usage",
+      "description": "Simple example showing basic usage",
+      "input": {
+        "param1": "example value",
+        "param2": 10
+      },
+      "output": {
+        "result": "expected output"
+      },
+      "context": "When user wants to do X"
+    }
+  ]
+}

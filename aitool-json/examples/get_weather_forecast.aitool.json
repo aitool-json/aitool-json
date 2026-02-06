@@ -1,0 +1,336 @@
+{
+  "aitool_version": "1.0.0",
+  "manifest": {
+    "id": "com.weather.get-forecast",
+    "name": "get_weather_forecast",
+    "version": "1.0.0",
+    "display_name": "Weather Forecast API",
+    "description": "Get weather forecast for a location using external weather API",
+    "category": "api_integration",
+    "tags": ["weather", "forecast", "api", "external"],
+    "provider": {
+      "name": "Weather Services Inc",
+      "contact": "api@weather.com",
+      "support_url": "https://weather.com/support",
+      "documentation_url": "https://docs.weather.com/api"
+    }
+  },
+  "capabilities": {
+    "primary_function": "weather_forecast",
+    "supported_operations": ["current", "forecast", "historical"],
+    "data_sources": ["external_weather_api"],
+    "output_formats": ["json"],
+    "supports_streaming": false,
+    "idempotent": true,
+    "stateful": false,
+    "requires_auth": true
+  },
+  "execution": {
+    "protocol": "http",
+    "endpoint": {
+      "type": "http",
+      "method": "GET",
+      "url": "https://api.weather.com/v1/forecast",
+      "headers": {
+        "Authorization": "Bearer ${API_KEY}",
+        "Content-Type": "application/json"
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "required": ["location"],
+      "properties": {
+        "location": {
+          "type": "string",
+          "description": "City name or coordinates (lat,lon)",
+          "examples": ["New York", "40.7128,-74.0060"]
+        },
+        "days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3,
+          "description": "Number of days to forecast"
+        },
+        "units": {
+          "type": "string",
+          "enum": ["metric", "imperial"],
+          "default": "metric",
+          "description": "Temperature units"
+        }
+      }
+    },
+    "returns": {
+      "success_schema": {
+        "type": "object",
+        "required": ["location", "forecast"],
+        "properties": {
+          "location": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "country": {"type": "string"},
+              "lat": {"type": "number"},
+              "lon": {"type": "number"}
+            }
+          },
+          "forecast": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {"type": "string", "format": "date"},
+                "temp_max": {"type": "number"},
+                "temp_min": {"type": "number"},
+                "condition": {"type": "string"},
+                "precipitation_chance": {"type": "number"},
+                "humidity": {"type": "number"}
+              }
+            }
+          },
+          "units": {"type": "string"}
+        }
+      },
+      "success_criteria": [
+        "Returns valid forecast data",
+        "Forecast array length matches requested days",
+        "All temperatures are reasonable values"
+      ]
+    },
+    "timeout_seconds": 10
+  },
+  "operations": {
+    "performance": {
+      "latency_ms": {
+        "p50": 200,
+        "p95": 500,
+        "p99": 1000
+      },
+      "throughput_qps": 100
+    },
+    "reliability": {
+      "availability_percent": 99.5,
+      "error_rate_percent": 0.5
+    },
+    "cost": {
+      "tier": "medium",
+      "pricing": {
+        "model": "per_request",
+        "amount": 0.01,
+        "currency": "USD"
+      }
+    },
+    "rate_limits": {
+      "requests_per_minute": 60,
+      "requests_per_day": 1000
+    }
+  },
+  "usage_guidance": {
+    "when_to_use": [
+      {
+        "trigger": "User asks about weather or forecast",
+        "confidence": "high",
+        "examples": [
+          "What's the weather in Paris?",
+          "Will it rain tomorrow in Seattle?",
+          "Give me a 5-day forecast for Tokyo",
+          "What's the temperature in London?"
+        ]
+      }
+    ],
+    "when_not_to_use": [
+      {
+        "scenario": "User asks about historical weather from years ago",
+        "reason": "This API only provides current and near-future forecasts",
+        "alternative_tool": "com.weather.get-historical"
+      },
+      {
+        "scenario": "User needs hyperlocal weather (specific street address)",
+        "reason": "API works at city/coordinate level only",
+        "alternative_tool": "com.weather.get-hyperlocal"
+      }
+    ],
+    "best_practices": [
+      "Use coordinates for precise locations",
+      "Cache results for repeated queries within 1 hour",
+      "Default to 3-day forecast unless user specifies",
+      "Convert location names to coordinates for consistency"
+    ],
+    "common_mistakes": [
+      {
+        "mistake": "Querying for very distant future (>10 days)",
+        "consequence": "API returns error",
+        "fix": "Limit forecast to maximum 10 days"
+      },
+      {
+        "mistake": "Not handling location not found errors",
+        "consequence": "User gets confusing error message",
+        "fix": "Detect location errors and ask user to clarify"
+      }
+    ]
+  },
+  "error_handling": [
+    {
+      "error_type": "timeout",
+      "error_code": "TimeoutError",
+      "detection": "Response time > 10 seconds",
+      "recovery": {
+        "strategy": "retry_with_backoff",
+        "max_retries": 2,
+        "backoff_ms": [1000, 3000],
+        "message_to_user": "Weather service is slow, retrying..."
+      }
+    },
+    {
+      "error_type": "rate_limit",
+      "error_code": "HTTP 429",
+      "detection": "HTTP 429 response",
+      "recovery": {
+        "strategy": "wait_and_retry",
+        "wait_seconds": 60,
+        "message_to_user": "Weather API rate limit reached. Please wait a moment."
+      }
+    },
+    {
+      "error_type": "location_not_found",
+      "error_code": "HTTP 404",
+      "detection": "HTTP 404 response",
+      "recovery": {
+        "strategy": "prompt_user",
+        "message_to_user": "Location not found. Please provide a valid city name or coordinates."
+      }
+    },
+    {
+      "error_type": "authentication_failed",
+      "error_code": "HTTP 401",
+      "detection": "HTTP 401 response",
+      "recovery": {
+        "strategy": "fail",
+        "message_to_user": "Weather API authentication failed. Please check your API key."
+      }
+    },
+    {
+      "error_type": "service_unavailable",
+      "error_code": "HTTP 503",
+      "detection": "HTTP 503 response",
+      "recovery": {
+        "strategy": "alternate_tool",
+        "fallback_tool": "com.weather.backup-service",
+        "message_to_user": "Primary weather service unavailable. Trying backup service..."
+      }
+    }
+  ],
+  "examples": [
+    {
+      "name": "get_current_weather",
+      "description": "Get current weather for a city",
+      "input": {
+        "location": "New York",
+        "days": 1,
+        "units": "imperial"
+      },
+      "output": {
+        "location": {
+          "name": "New York",
+          "country": "US",
+          "lat": 40.7128,
+          "lon": -74.0060
+        },
+        "forecast": [
+          {
+            "date": "2025-02-05",
+            "temp_max": 45,
+            "temp_min": 32,
+            "condition": "Partly Cloudy",
+            "precipitation_chance": 20,
+            "humidity": 65
+          }
+        ],
+        "units": "imperial"
+      },
+      "context": "User wants to know today's weather"
+    },
+    {
+      "name": "get_multi_day_forecast",
+      "description": "Get 5-day forecast with coordinates",
+      "input": {
+        "location": "48.8566,2.3522",
+        "days": 5,
+        "units": "metric"
+      },
+      "output": {
+        "location": {
+          "name": "Paris",
+          "country": "FR",
+          "lat": 48.8566,
+          "lon": 2.3522
+        },
+        "forecast": [
+          {
+            "date": "2025-02-05",
+            "temp_max": 12,
+            "temp_min": 5,
+            "condition": "Rainy",
+            "precipitation_chance": 80,
+            "humidity": 75
+          }
+        ],
+        "units": "metric"
+      },
+      "context": "User planning a trip and needs extended forecast"
+    }
+  ],
+  "testing": {
+    "contract_tests": [
+      {
+        "name": "valid_location_returns_forecast",
+        "input": {"location": "London", "days": 3},
+        "assertions": [
+          "response.forecast is array",
+          "response.forecast.length == 3",
+          "response.location.name is string"
+        ]
+      }
+    ],
+    "validation_rules": [
+      "Location must be valid city or coordinates",
+      "Days must be between 1 and 10",
+      "Response time should be under 1 second for p99"
+    ]
+  },
+  "composition": {
+    "can_compose_with": [
+      {
+        "tool_id": "com.travel.plan-trip",
+        "pattern": "sequential",
+        "description": "Get weather forecast then plan trip accordingly"
+      },
+      {
+        "tool_id": "com.calendar.suggest-events",
+        "pattern": "parallel",
+        "description": "Check weather and calendar simultaneously for outdoor event planning"
+      }
+    ]
+  },
+  "versioning": {
+    "current_version": "1.0.0",
+    "deprecated": false,
+    "compatibility": {
+      "backward_compatible_with": [],
+      "forward_compatible_with": []
+    }
+  },
+  "observability": {
+    "metrics_exposed": [
+      "request_count",
+      "latency_histogram",
+      "error_rate",
+      "api_calls_remaining"
+    ],
+    "logging": {
+      "level": "info",
+      "includes_pii": false,
+      "retention_days": 7
+    }
+  }
+}

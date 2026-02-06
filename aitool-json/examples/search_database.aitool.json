@@ -1,0 +1,421 @@
+{
+  "aitool_version": "1.0.0",
+  "manifest": {
+    "id": "com.acme.search-database",
+    "name": "search_database",
+    "version": "1.2.0",
+    "display_name": "Product Database Search",
+    "description": "Search internal product database for records matching natural language queries. Provides fast semantic search with filtering capabilities.",
+    "category": "data_retrieval",
+    "tags": ["database", "search", "products", "inventory", "semantic-search"],
+    "provider": {
+      "name": "Acme Corp",
+      "contact": "tools@acme.com",
+      "support_url": "https://support.acme.com/tools/search-database",
+      "documentation_url": "https://docs.acme.com/tools/search-database"
+    }
+  },
+  "capabilities": {
+    "primary_function": "semantic_search",
+    "supported_operations": ["query", "filter", "paginate", "sort"],
+    "data_sources": ["internal_product_db"],
+    "output_formats": ["json"],
+    "supports_streaming": false,
+    "idempotent": true,
+    "stateful": false,
+    "requires_auth": true
+  },
+  "execution": {
+    "protocol": "function_call",
+    "endpoint": {
+      "type": "python_function",
+      "module": "acme.tools.search",
+      "function": "search_database"
+    },
+    "parameters": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200,
+          "description": "Natural language search query",
+          "examples": ["red shirts size M", "orders from last week", "products in warehouse B"]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10,
+          "description": "Maximum number of results to return"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Number of results to skip (for pagination)"
+        },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string",
+              "description": "Filter by product category"
+            },
+            "warehouse": {
+              "type": "string",
+              "description": "Filter by warehouse location"
+            },
+            "in_stock": {
+              "type": "boolean",
+              "description": "Only return in-stock items"
+            }
+          }
+        },
+        "sort_by": {
+          "type": "string",
+          "enum": ["relevance", "price", "date_added"],
+          "default": "relevance"
+        }
+      }
+    },
+    "returns": {
+      "success_schema": {
+        "type": "object",
+        "required": ["results", "total_count", "query_time_ms"],
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"},
+                "description": {"type": "string"},
+                "category": {"type": "string"},
+                "price": {"type": "number"},
+                "warehouse": {"type": "string"},
+                "in_stock": {"type": "boolean"},
+                "relevance_score": {"type": "number", "minimum": 0, "maximum": 1}
+              }
+            }
+          },
+          "total_count": {"type": "integer"},
+          "query_time_ms": {"type": "number"},
+          "has_more": {"type": "boolean"}
+        }
+      },
+      "success_criteria": [
+        "Returns results array (can be empty)",
+        "total_count >= 0",
+        "query_time_ms < 500",
+        "All results have required fields (id, name, category)"
+      ]
+    },
+    "timeout_seconds": 5
+  },
+  "operations": {
+    "performance": {
+      "latency_ms": {
+        "p50": 50,
+        "p95": 120,
+        "p99": 200
+      },
+      "throughput_qps": 1000,
+      "resource_usage": {
+        "memory_mb": 128,
+        "cpu_cores": 0.5
+      }
+    },
+    "reliability": {
+      "availability_percent": 99.9,
+      "error_rate_percent": 0.1
+    },
+    "cost": {
+      "tier": "low",
+      "pricing": {
+        "model": "per_request",
+        "amount": 0.001,
+        "currency": "USD"
+      }
+    },
+    "rate_limits": {
+      "requests_per_minute": 100,
+      "requests_per_hour": 5000,
+      "burst": 10,
+      "concurrent": 5
+    }
+  },
+  "usage_guidance": {
+    "when_to_use": [
+      {
+        "trigger": "User asks about product information or availability",
+        "confidence": "high",
+        "examples": [
+          "What red shirts do you have?",
+          "Find me products like X",
+          "Do you have any blue jeans in stock?",
+          "Show me items in the electronics category"
+        ]
+      },
+      {
+        "trigger": "Need to look up historical order or product data",
+        "confidence": "high",
+        "examples": ["Find orders from last week", "What products did customer X buy?"]
+      },
+      {
+        "trigger": "User wants to browse or explore product catalog",
+        "confidence": "medium",
+        "examples": ["Show me what's new", "What's popular right now?"]
+      }
+    ],
+    "when_not_to_use": [
+      {
+        "scenario": "User asks about current pricing or discounts",
+        "reason": "This database has 5-minute lag on price updates",
+        "alternative_tool": "com.acme.get-pricing"
+      },
+      {
+        "scenario": "Need real-time inventory counts",
+        "reason": "Inventory data is cached and may be stale",
+        "alternative_tool": "com.acme.check-inventory"
+      },
+      {
+        "scenario": "Searching for external/public data",
+        "reason": "This only searches internal product database",
+        "alternative_tool": "com.acme.web-search"
+      }
+    ],
+    "best_practices": [
+      "Be specific in queries for better results",
+      "Use filters to narrow down large result sets",
+      "Empty results are normal and valid (not an error)",
+      "Sort by relevance by default unless user specifies otherwise",
+      "Use pagination for large result sets instead of increasing limit"
+    ],
+    "common_mistakes": [
+      {
+        "mistake": "Query too vague (e.g., just 'shirts' with no qualifiers)",
+        "consequence": "Returns too many results, overwhelming the user",
+        "fix": "Ask user for more specificity: size, color, style, etc."
+      },
+      {
+        "mistake": "Treating empty results as an error",
+        "consequence": "Agent fails or retries unnecessarily",
+        "fix": "Empty results are valid - inform user no matches were found"
+      },
+      {
+        "mistake": "Not using filters when user specifies constraints",
+        "consequence": "Returns irrelevant results that need filtering client-side",
+        "fix": "Parse user intent and apply appropriate filters"
+      }
+    ]
+  },
+  "error_handling": [
+    {
+      "error_type": "timeout",
+      "error_code": "TimeoutError",
+      "detection": "Response time > 5 seconds",
+      "recovery": {
+        "strategy": "retry_with_backoff",
+        "max_retries": 2,
+        "backoff_ms": [1000, 3000],
+        "message_to_user": "Database is slow, retrying..."
+      }
+    },
+    {
+      "error_type": "rate_limit",
+      "error_code": "RateLimitError",
+      "detection": "HTTP 429 or RateLimitError exception",
+      "recovery": {
+        "strategy": "wait_and_retry",
+        "wait_seconds": 60,
+        "message_to_user": "Search rate limit reached. Waiting 1 minute before retrying."
+      }
+    },
+    {
+      "error_type": "invalid_input",
+      "error_code": "ValidationError",
+      "detection": "Query < 3 chars or limit out of range",
+      "recovery": {
+        "strategy": "prompt_user",
+        "message_to_user": "Search query is too short. Please provide at least 3 characters."
+      }
+    },
+    {
+      "error_type": "database_unavailable",
+      "error_code": "ConnectionError",
+      "detection": "Cannot connect to database",
+      "recovery": {
+        "strategy": "alternate_tool",
+        "fallback_tool": "com.acme.search-cache",
+        "message_to_user": "Main database unavailable. Searching cached data instead."
+      }
+    }
+  ],
+  "examples": [
+    {
+      "name": "basic_product_search",
+      "description": "Simple product search with no filters",
+      "input": {
+        "query": "red shirts size M",
+        "limit": 5
+      },
+      "output": {
+        "results": [
+          {
+            "id": "PROD-123",
+            "name": "Classic Red T-Shirt",
+            "description": "100% cotton red t-shirt",
+            "category": "apparel",
+            "price": 19.99,
+            "warehouse": "B",
+            "in_stock": true,
+            "relevance_score": 0.95
+          }
+        ],
+        "total_count": 3,
+        "query_time_ms": 45,
+        "has_more": false
+      },
+      "context": "User looking for specific product variant"
+    },
+    {
+      "name": "search_with_filters",
+      "description": "Search with category and warehouse filters",
+      "input": {
+        "query": "laptops",
+        "limit": 10,
+        "filters": {
+          "category": "electronics",
+          "warehouse": "A",
+          "in_stock": true
+        }
+      },
+      "output": {
+        "results": [
+          {
+            "id": "PROD-456",
+            "name": "Business Laptop Pro",
+            "category": "electronics",
+            "warehouse": "A",
+            "in_stock": true,
+            "relevance_score": 0.89
+          }
+        ],
+        "total_count": 15,
+        "query_time_ms": 67,
+        "has_more": true
+      },
+      "context": "User wants in-stock laptops from specific warehouse"
+    },
+    {
+      "name": "empty_results",
+      "description": "Valid query with no matching results",
+      "input": {
+        "query": "nonexistent_product_xyz",
+        "limit": 10
+      },
+      "output": {
+        "results": [],
+        "total_count": 0,
+        "query_time_ms": 32,
+        "has_more": false
+      },
+      "context": "This is a SUCCESS case - empty results are valid"
+    }
+  ],
+  "testing": {
+    "contract_tests": [
+      {
+        "name": "valid_query_returns_results",
+        "input": {"query": "test product", "limit": 5},
+        "assertions": [
+          "response.results is array",
+          "response.total_count >= 0",
+          "response.query_time_ms < 500"
+        ]
+      },
+      {
+        "name": "empty_query_rejected",
+        "input": {"query": "", "limit": 10},
+        "assertions": ["raises ValidationError"]
+      }
+    ],
+    "integration_tests": [
+      {
+        "name": "handles_empty_results",
+        "input": {"query": "nonexistent_xyz"},
+        "expected": {"results": [], "total_count": 0}
+      }
+    ],
+    "validation_rules": [
+      "Query must be at least 3 characters",
+      "Limit must be between 1 and 100",
+      "Response time should be under 200ms for p99"
+    ]
+  },
+  "composition": {
+    "dependencies": [
+      {
+        "tool_id": "com.acme.auth-service",
+        "version": ">=2.0.0",
+        "required": true,
+        "purpose": "Authentication for database access"
+      }
+    ],
+    "can_compose_with": [
+      {
+        "tool_id": "com.acme.get-pricing",
+        "pattern": "sequential",
+        "description": "Search for products, then get their current prices"
+      },
+      {
+        "tool_id": "com.acme.check-inventory",
+        "pattern": "parallel",
+        "description": "Search products and check inventory simultaneously"
+      }
+    ],
+    "output_compatible_with": ["com.acme.generate-report", "com.acme.send-email"]
+  },
+  "versioning": {
+    "current_version": "1.2.0",
+    "deprecated": false,
+    "breaking_changes": [
+      {
+        "version": "1.0.0",
+        "date": "2024-01-15",
+        "changes": [
+          "Removed 'fuzzy_match' parameter",
+          "Changed return schema: 'items' -> 'results'",
+          "Added required 'query_time_ms' field to response"
+        ],
+        "migration_guide": "https://docs.acme.com/migrations/search-db-v1.0.0"
+      }
+    ],
+    "compatibility": {
+      "backward_compatible_with": ["1.1.x", "1.0.x"],
+      "forward_compatible_with": []
+    }
+  },
+  "observability": {
+    "metrics_exposed": [
+      "request_count",
+      "latency_histogram",
+      "error_rate",
+      "cache_hit_rate",
+      "query_complexity"
+    ],
+    "logging": {
+      "level": "info",
+      "includes_pii": false,
+      "retention_days": 30
+    },
+    "tracing": {
+      "enabled": true,
+      "system": "opentelemetry",
+      "sample_rate": 0.1
+    }
+  }
+}
